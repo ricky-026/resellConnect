@@ -1,0 +1,11 @@
+.loginFormContainer {
+    width: 25%;
+    height: 50%;
+    margin-left: 38%;
+    margin-top:  15%;
+}
+
+body{
+    background-image: url("/images/login_background.jpg");    
+    background-size: cover;
+}
