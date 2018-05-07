@@ -3,9 +3,9 @@ var mongoose = require("mongoose");
 var passport = require("passport");
 var bodyParser = require("body-parser");
 var User = require("./models/user");
+var Item = require("./models/item")
 var localStrategy = require("passport-local");
 var passportLocalMongoose =require("passport-local-mongoose");
-
 
 mongoose.connect("mongodb://localhost/resell_connect");//creates the db if doesnt exist
 
@@ -33,6 +33,19 @@ passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
 
+
+var multer = require("multer");
+var upload = multer({dest: "public/uploads/"});
+
+function isLoggedIn(req, res, next){
+    
+    if (req.isAuthenticated()){
+        return next();
+    }
+    
+    res.redirect('/login');
+}
+
 //==========================================
 // LOGIN 
 //===============================================
@@ -40,15 +53,28 @@ app.get("/", function(req, res){
     res.render("login");
 });
 
-app.post("/login", function(req, res){
+app.get("/login", function(req, res){
+    res.render('login');
+});
+
+app.post("/login", passport.authenticate("local", 
+{successRedirect: '/home',
+ failureRedirect: '/login'
+}),
+function(req, res){
       console.log(req.body.username);
       res.send("post");
 });
 
+//===================================================
+//LOG OUT
+//================================================
+app.get("/logout", function(req, res) {
+    req.logout();
+    res.render('login');
+});
 
 //HOMEPAGE
-
-
 
 
 //=================================================
@@ -89,18 +115,54 @@ app.post("/register", function(req, res){
         //run this, log the user in, takes 
         passport.authenticate("local")(req, res, function(){
             res.redirect("/home");
-        })
+        });
     });
 });
 
 
 
 //HOME
-app.get("/home", function(req, res){
-   res.render('home'); 
+app.get("/home", isLoggedIn, function(req, res){
+    
+   res.render('home', {user: req.user}); 
 });
 
+
+app.post("/create_post", isLoggedIn, upload.single('avatar'), function(req, res){
+    var user_id = req.user._id;
+    var item_name = req.body.item_name;
+    var category = req.body.category;
+    var price = req.body.price;
+    var condition = req.body.condition;
+    var description = req.body.description;
+    var availability = "no";
+    
+    var itemD =  {
+        item_name: item_name,
+        category: category,
+        price: price,
+        condition: condition,
+        description: description,
+        availability: availability
+    }
+    
+ 
+    return res.send(req.file);
+    //var image_path = req.files.path;
+    
+    Item.create(
+        {user_id: user_id,
+        //image_path: image_path,
+        item_description: itemD}, 
+        function(err, item){
+        if (err){
+            res.send("error");
+        }
+    });
+    res.redirect("/home");
+});
 app.listen(process.env.PORT, process.env.IP, function(){
     console.log("APP has started");
 });
+
 
